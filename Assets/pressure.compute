@@ -1,0 +1,51 @@
+﻿#pragma kernel Update
+
+struct Lattice {
+	int type;
+	float prs;
+	float psi;
+	float omg;
+	float2 vel;
+	float2 vxg;
+	float2 vyg;
+};
+
+float deltaT;
+float Re;
+int width;
+int height;
+RWStructuredBuffer<Lattice> LB;
+
+[numthreads(8, 8, 1)]
+void Update(uint3 id : SV_DispatchThreadID)
+{
+	// lattice position
+	int w = width - 1;
+	int h = height - 1;
+	int i = id.x;
+	int j = id.y;
+	int k = id.x + width * id.y;
+	int l = (id.x - 1) + width * id.y;
+	int r = (id.x + 1) + width * id.y;
+	int b = id.x + width * (id.y - 1);
+	int a = id.x + width * (id.y + 1);
+
+	int dx = 1;
+	int dy = 1;
+	int dx2 = dx * dx;
+	int dy2 = dy * dy;
+	float a1 = 0.5 * dy2 / (dx2 + dy2);
+	float a2 = 0.5 * dx2 / (dx2 + dy2);
+	float a3 = 0.25 * dx2*dy2 / (dx2 + dy2);
+	float D;
+
+	if (0 < i < w && 0 < j < h) {
+		float aa = (LB[r].vel.x - LB[l].vel.x) / dx;
+		float bb = (LB[a].vel.y - LB[b].vel.y) / dy;
+		D = a3 * (aa + bb) / deltaT;
+	}
+
+	if (0 < i < w && 0 < j < h && LB[k].type == 0) {
+		LB[k].prs = a1 * (LB[r].prs + LB[l].prs) + a2 * (LB[a].prs + LB[b].prs) - D;
+	}
+}

@@ -1,0 +1,37 @@
+﻿#pragma kernel Update
+
+struct Lattice {
+	int type;
+	float prs;
+	float psi;
+	float omg;
+	float2 vel;
+	float2 vxg;
+	float2 vyg;
+};
+
+float deltaT;
+float Re;
+int width;
+int height;
+RWStructuredBuffer<Lattice> LB;
+
+[numthreads(8, 8, 1)]
+void Update(uint3 id : SV_DispatchThreadID)
+{
+	// lattice position
+	int w = width - 1;
+	int h = height - 1;
+	int i = id.x;
+	int j = id.y;
+	int k = id.x + width * id.y;
+	int l = (id.x - 1) + width * id.y;
+	int r = (id.x + 1) + width * id.y;
+	int b = id.x + width * (id.y - 1);
+	int a = id.x + width * (id.y + 1);
+
+	if (0 < i < w && 0 < j < h && LB[k].type == 0) {
+		LB[k].vel.x += -0.5 * deltaT * (LB[r].prs - LB[l].prs);
+		LB[k].vel.y += -0.5 * deltaT * (LB[a].prs - LB[b].prs);
+	}
+}

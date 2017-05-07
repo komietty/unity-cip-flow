@@ -1,0 +1,245 @@
+﻿#pragma kernel Update
+
+struct Lattice {
+	int type;
+	float prs;
+	float psi;
+	float omg;
+	float2 vel;
+	float2 vxg;
+	float2 vyg;
+};
+
+int width;
+int height;
+float threshold;
+float deltaT;
+float Re;
+float obsH;
+float obsW;
+float obsX;
+float obsY;
+float prebObsX;
+float prebObsY;
+
+RWStructuredBuffer<Lattice> LB;
+
+void velxUpdate(int i, int j, float vx, float vy) {
+
+	// lattice position
+	int w = width - 1;
+	int h = height - 1;
+	int k = i + width * j;
+	int l = (i - 1) + width * j;
+	int r = (i + 1) + width * j;
+	int b = i + width * (j - 1);
+	int a = i + width * (j + 1);
+	int al = (i - 1) + width * (j + 1);
+	int ar = (i + 1) + width * (j + 1);
+	float _f, _gx, _gy;
+
+	if (0 < i < w && 0 < j < h && LB[k].type == 0)
+	{
+		// sx,sy condition 
+		int sx = (vx >= 0) ? 1.0 : -1.0;
+		int sy = (vy >= 0) ? 1.0 : -1.0;
+
+		int ip = i - sx;
+		int jp = j - sy;
+		int dx = sx;
+		int dy = sy;
+		int dx2 = dx * dx;
+		int dy2 = dy * dy;
+		int dx3 = dx * dx * dx;
+		int dy3 = dy * dy * dy;
+
+		float x = -vx * deltaT;
+		float y = -vy * deltaT;
+
+		// f
+		float fk = LB[k].vel.x;
+		float fl = LB[l].vel.x;
+		float fr = LB[r].vel.x;
+		float fa = LB[a].vel.x;
+		float fb = LB[b].vel.x;
+		float f_i_j = LB[i + width * j].vel.x;
+		float f_ip_j = LB[ip + width * j].vel.x;
+		float f_i_jp = LB[i + width * jp].vel.x;
+		float f_ip_jp = LB[ip + width * jp].vel.x;
+
+		// gx, gy
+		float gx_i_j = LB[i + width * j].vxg.x;
+		float gy_i_j = LB[i + width * j].vxg.y;
+		float gx_ip_j = LB[ip + width * j].vxg.x;
+		float gy_ip_j = LB[ip + width * j].vxg.y;
+		float gx_i_jp = LB[i + width * jp].vxg.x;
+		float gy_i_jp = LB[i + width * jp].vxg.y;
+
+		// CIP constants
+		float c30 = ((gx_ip_j + gx_i_j) * dx - 2.0 * (f_i_j - f_ip_j)) / dx3;
+		float c03 = ((gy_i_jp + gy_i_j) * dy - 2.0 * (f_i_j - f_i_jp)) / dy3;
+		float c20 = (3.0 * (f_ip_j - f_i_j) + (gx_ip_j + 2.0 * gx_i_j) * dx) / dx2;
+		float c02 = (3.0 * (f_i_jp - f_i_j) + (gy_i_jp + 2.0 * gy_i_j) * dy) / dy2;
+		float aa = f_i_j - f_i_jp - f_ip_j + f_ip_jp;
+		float bb = gy_ip_j - gy_i_j;
+		float c12 = (-aa - bb * dy) / (dx * dy2);
+		float c21 = (-aa - (gx_i_jp - gx_i_j) * dx) / (dx2 * dy);
+		float c11 = -bb / dx + c21 * dx;
+
+		_f = f_i_j + ((c30 * x + c21 * y + c20) * x + c11 * y + gx_i_j) * x + ((c03 * y + c12 * x + c02) * y + gy_i_j) * y;
+		_f += deltaT * ((fl - 2.0 * fk + fr) / dx2 + (fb - 2.0 * fk + fa) / dy2) / Re;
+
+		_gx = gx_i_j + (3.0 * c30 * x + 2.0 * (c21 * y + c20)) * x + (c12 * y + c11) * y;
+		_gy = gy_i_j + (3.0 * c03 * y + 2.0 * (c12 * x + c02)) * y + (c21 * x + c11) * x;
+
+		LB[k].vel.x = _f;
+		LB[k].vxg.x = _gx;
+		LB[k].vxg.y = _gy;
+	}
+}
+
+void velyUpdate(int i, int j, float vx, float vy) {
+
+	// lattice position
+	int w = width - 1;
+	int h = height - 1;
+	int k = i + width * j;
+	int l = (i - 1) + width * j;
+	int r = (i + 1) + width * j;
+	int b = i + width * (j - 1);
+	int a = i + width * (j + 1);
+	int al = (i - 1) + width * (j + 1);
+	int ar = (i + 1) + width * (j + 1);
+	float _f, _gx, _gy;
+
+	if (0 < i < w && 0 < j < h && LB[k].type == 0)
+	{
+		// sx,sy condition 
+		int sx = (vx >= 0) ? 1.0 : -1.0;
+		int sy = (vy >= 0) ? 1.0 : -1.0;
+
+		int ip = i - sx;
+		int jp = j - sy;
+		int dx = sx;
+		int dy = sy;
+		int dx2 = dx * dx;
+		int dy2 = dy * dy;
+		int dx3 = dx * dx * dx;
+		int dy3 = dy * dy * dy;
+
+		float x = -vx * deltaT;
+		float y = -vy * deltaT;
+
+		// f
+		float fk = LB[k].vel.y;
+		float fl = LB[l].vel.y;
+		float fr = LB[r].vel.y;
+		float fa = LB[a].vel.y;
+		float fb = LB[b].vel.y;
+		float f_i_j = LB[i + width * j].vel.y;
+		float f_ip_j = LB[ip + width * j].vel.y;
+		float f_i_jp = LB[i + width * jp].vel.y;
+		float f_ip_jp = LB[ip + width * jp].vel.y;
+
+		// gx, gy
+		float gx_i_j = LB[i + width * j].vyg.x;
+		float gy_i_j = LB[i + width * j].vyg.y;
+		float gx_ip_j = LB[ip + width * j].vyg.x;
+		float gy_ip_j = LB[ip + width * j].vyg.y;
+		float gx_i_jp = LB[i + width * jp].vyg.x;
+		float gy_i_jp = LB[i + width * jp].vyg.y;
+
+		// CIP constants
+		float c30 = ((gx_ip_j + gx_i_j) * dx - 2.0 * (f_i_j - f_ip_j)) / dx3;
+		float c03 = ((gy_i_jp + gy_i_j) * dy - 2.0 * (f_i_j - f_i_jp)) / dy3;
+		float c20 = (3.0 * (f_ip_j - f_i_j) + (gx_ip_j + 2.0 * gx_i_j) * dx) / dx2;
+		float c02 = (3.0 * (f_i_jp - f_i_j) + (gy_i_jp + 2.0 * gy_i_j) * dy) / dy2;
+		float aa = f_i_j - f_i_jp - f_ip_j + f_ip_jp;
+		float bb = gy_ip_j - gy_i_j;
+		float c12 = (-aa - bb * dy) / (dx * dy2);
+		float c21 = (-aa - (gx_i_jp - gx_i_j) * dx) / (dx2 * dy);
+		float c11 = -bb / dx + c21 * dx;
+
+		_f = f_i_j + ((c30 * x + c21 * y + c20) * x + c11 * y + gx_i_j) * x + ((c03 * y + c12 * x + c02) * y + gy_i_j) * y;
+		_f += deltaT * ((fl - 2.0 * fk + fr) / dx2 + (fb - 2.0 * fk + fa) / dy2) / Re;
+
+		_gx = gx_i_j + (3.0 * c30 * x + 2.0 * (c21 * y + c20)) * x + (c12 * y + c11) * y;
+		_gy = gy_i_j + (3.0 * c03 * y + 2.0 * (c12 * x + c02)) * y + (c21 * x + c11) * x;
+
+		LB[k].vel.y = _f;
+		LB[k].vyg.x = _gx;
+		LB[k].vyg.y = _gy;
+	}
+}
+
+
+[numthreads(8, 8, 1)]
+void Update(uint3 id : SV_DispatchThreadID)
+{
+	// lattice position
+	int k  = id.x + width * id.y;
+	int l  = (id.x - 1) + width * id.y;
+	int r  = (id.x + 1) + width * id.y;
+	int b  = id.x + width * (id.y - 1);
+	int a  = id.x + width * (id.y + 1);
+	int al = (id.x - 1) + width * (id.y + 1);
+	int ar = (id.x + 1) + width * (id.y + 1);
+	int bl = (id.x - 1) + width * (id.y - 1);
+	int br = (id.x + 1) + width * (id.y - 1);
+
+	int w = width - 1;
+	int h = height - 1;
+	int i = id.x; // 0 ~ w
+	int j = id.y; // 0 ~ h
+
+	// type boundary condition
+	if (j == 0)															 LB[k].type = 1;  // bottom
+	else if (j == h)													 LB[k].type = 2;  // top
+	else if (i == 0)													 LB[k].type = 3;  // inlet
+	else if (i == w)													 LB[k].type = 4;  // outlet
+	else if (i == obsX && j > obsY && j < obsY + obsH)                   LB[k].type = 5;  // obs_left
+	else if (j == obsY && i > obsX && i < obsX + obsW)                   LB[k].type = 6;  // obs_bottom
+	else if (i == obsX + obsW && j > obsY && j < obsY + obsH)            LB[k].type = 7;  // obs_right
+	else if (j == obsY + obsH && i > obsX && i < obsX + obsW)            LB[k].type = 8;  // obs_top
+	else if (i > obsX && j > obsY && i < obsX + obsW && j < obsY + obsH) LB[k].type = 9;  // obs_inn
+	else if (i == obsX && j == obsY)									 LB[k].type = 10; // obs_bottomleft
+	else if (i == obsX && j == obsY + obsH)								 LB[k].type = 11; // obs_topleft
+	else if (i == obsX + obsW && j == obsY)								 LB[k].type = 12; // obs_bottomright
+	else if (i == obsX + obsW && j == obsY + obsH)						 LB[k].type = 13; // obs_topright
+	else																 LB[k].type = 0;  // inside
+
+	// boundary condition 
+	if (0 < i && i < w && 0 < j && j < h)
+	{
+		if (LB[k].type != 0)
+		{
+			LB[k].vel.x = (obsX - prebObsX) / deltaT * 0.0018;
+			LB[k].vel.y = (obsY - prebObsY) / deltaT * 0.0018;
+
+			if (LB[k].vel.x > threshold)  LB[k].vel.x = threshold;
+			if (LB[k].vel.y > threshold)  LB[k].vel.y = threshold;
+			if (LB[k].vel.x < -threshold) LB[k].vel.x = -threshold;
+			if (LB[k].vel.y < -threshold) LB[k].vel.y = -threshold;
+		}
+	}
+
+	velxUpdate(i, j, LB[k].vel.x, LB[k].vel.y);
+	velyUpdate(i, j, LB[k].vel.x, LB[k].vel.y);
+
+	// prs boundary condition
+	if (LB[k].type == 1) LB[k].prs = LB[i + width * 1].prs;       // bottom
+	if (LB[k].type == 2) LB[k].prs = LB[i + width * (h - 1)].prs; // top
+	if (LB[k].type == 3) LB[k].prs = LB[1 + width * j].prs;       // inlet
+	if (LB[k].type == 4) LB[k].prs = 0;                           // outlet
+
+	if (LB[k].type == 5) LB[k].prs = LB[l].prs; // obs_left
+	if (LB[k].type == 6) LB[k].prs = LB[b].prs; // obs_bottom
+	if (LB[k].type == 7) LB[k].prs = LB[r].prs; // obs_right
+	if (LB[k].type == 8) LB[k].prs = LB[a].prs; // obs_top
+	if (LB[k].type == 9) LB[k].prs = 0;         // obs_inn
+
+	if (LB[k].type == 10) LB[k].prs = LB[bl].prs; // obs_bottomleft
+	if (LB[k].type == 11) LB[k].prs = LB[al].prs; // obs_topleft
+	if (LB[k].type == 12) LB[k].prs = LB[br].prs; // obs_bottomright
+	if (LB[k].type == 13) LB[k].prs = LB[ar].prs; // obs_topright
+}

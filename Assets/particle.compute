@@ -1,0 +1,35 @@
+﻿#pragma kernel Update
+
+struct Particle {
+	float3 pos;
+	float3 vel;
+};
+
+struct Lattice {
+	int type;
+	float prs;
+	float psi;
+	float omg;
+	float2 vel;
+	float2 vxg;
+	float2 vyg;
+};
+
+int width;
+int height;
+RWStructuredBuffer<Particle> PB;
+RWStructuredBuffer<Lattice> LB;
+
+[numthreads(8, 1, 1)]
+void Update(uint3 id : SV_DispatchThreadID)
+{
+	int w = width - 1;
+	int x = floor(PB[id.x].pos.x);
+	int y = floor(PB[id.x].pos.y);
+	int k = x + y * width;
+
+	PB[id.x].vel.x = LB[k].vel.x;
+	PB[id.x].vel.y = LB[k].vel.y;
+
+	PB[id.x].pos += PB[id.x].vel;
+}
