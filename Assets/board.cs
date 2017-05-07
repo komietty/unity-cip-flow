@@ -122,7 +122,7 @@ public class board : MonoBehaviour
 
     void Update()
     {
-        Debug.Log(Time.deltaTime);
+        //Debug.Log(Time.deltaTime);
         // update cip data
         cipCompShader.SetFloat("deltaT", Time.deltaTime);
         cipCompShader.SetFloat("Re", Re);
