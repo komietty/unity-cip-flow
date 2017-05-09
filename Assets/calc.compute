@@ -213,8 +213,8 @@ void Update(uint3 id : SV_DispatchThreadID)
 	{
 		if (LB[k].type != 0)
 		{
-			LB[k].vel.x = (obsX - prebObsX) / deltaT * 0.0018;
-			LB[k].vel.y = (obsY - prebObsY) / deltaT * 0.0018;
+			LB[k].vel.x = (obsX - prebObsX) / deltaT * 0.0015;
+			LB[k].vel.y = (obsY - prebObsY) / deltaT * 0.0015;
 
 			if (LB[k].vel.x > threshold)  LB[k].vel.x = threshold;
 			if (LB[k].vel.y > threshold)  LB[k].vel.y = threshold;

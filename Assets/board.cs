@@ -21,10 +21,6 @@ public class board : MonoBehaviour
         public Vector2 vyg;
     }
 
-    static int particleNum = 500000;
-    static int latticeWidth = 1500;
-    static int latticeHeight = 800;
-    int latticeLen = latticeWidth * latticeHeight;
     public Shader shader;
     public ComputeShader patricleCompShader;
     public ComputeShader cipCompShader;
@@ -41,10 +37,14 @@ public class board : MonoBehaviour
     int velUpdateKernel;
 
     // public valiables
-    public float Re = 1000;
-    public float threshold = 100;
-    public float obsW = 10;
-    public float obsH = 10;
+    public int particleNum   = 400000;
+    public int latticeWidth  = 1600;
+    public int latticeHeight = 600;
+    public float cameraPosZ  = -800;
+    public float Re          = 2000;
+    public float threshold   = 60;
+    public float obsW        = 2;
+    public float obsH        = 2;
 
     // obs pos
     float obsX = 0;
@@ -52,8 +52,12 @@ public class board : MonoBehaviour
     float prebObsX = 0;
     float prebObsY = 0;
 
+    // array length
+    int latticeLen;
+
     void OnEnable()
     {
+        latticeLen = latticeWidth * latticeHeight;
         mat = new Material(shader);
 
         Particle[] pArr = new Particle[particleNum];
@@ -118,6 +122,10 @@ public class board : MonoBehaviour
         velUpdateKernel = velCompShader.FindKernel("Update");
 
         mat.SetBuffer("particleBuffer", particlebuffer);
+
+        BoxCollider box = gameObject.GetComponent<BoxCollider>();
+        box.center = new Vector3(latticeWidth/2, latticeHeight/2, 0);
+        box.size   = new Vector3(latticeWidth, latticeHeight, 1);
     }
 
     void Update()
@@ -144,7 +152,7 @@ public class board : MonoBehaviour
         prsCompShader.SetInt("width", latticeWidth);
         prsCompShader.SetInt("height", latticeHeight);
         prsCompShader.SetBuffer(prsUpdateKernel, "LB", latticebuffer);
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 2; i++)
         {
             prsCompShader.Dispatch(prsUpdateKernel, latticeWidth / 8, latticeHeight / 8, 1);
         }

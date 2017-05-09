@@ -1,18 +1,19 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class camera : MonoBehaviour {
-    public int framerate = 30;
-    public int superSize;
-    public bool autoRecord;
 
+    int framerate = 60;
     int frameCount;
-    bool recording;
+
 
     void Start()
     {
-        // if (autoRecord) StartRecording();
+        board b = GameObject.FindGameObjectWithTag("Player").GetComponent<board>();
+        float x = (float)b.latticeWidth / 2;
+        float y = (float)b.latticeHeight / 2;
+        float z = b.cameraPosZ;
+        gameObject.transform.position = new Vector3(x, y, z);
+
         StartRecording();
     }
 
@@ -21,41 +22,16 @@ public class camera : MonoBehaviour {
         System.IO.Directory.CreateDirectory("Capture");
         Time.captureFramerate = framerate;
         frameCount = -1;
-        recording = true;
     }
 
     void Update()
     {
-        if (recording)
+        if (frameCount > 0)
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                //recording = false;
-                //enabled = false;
-            }
-            else
-            {
-                if (frameCount > 0)
-                {
-                    var name = "Capture/frame" + frameCount.ToString("0000") + ".png";
-                    Application.CaptureScreenshot(name, superSize);
-                }
-
-                frameCount++;
-
-                if (frameCount > 0 && frameCount % 60 == 0)
-                {
-                    Debug.Log((frameCount / 60).ToString() + " seconds elapsed.");
-                }
-            }
+            var name = "Capture/frame" + frameCount.ToString("0000") + ".png";
+            Application.CaptureScreenshot(name);
         }
+
+        frameCount++;
     }
-    //    void OnGUI()
-    //    {
-    //        if (!recording && GUI.Button(new Rect(0, 0, 200, 50), "Start Recording"))
-    //        {
-    //            StartRecording();
-    //            Debug.Log("Click Game View to stop recording.");
-    //        }
-    //   }
 }
