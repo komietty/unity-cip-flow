@@ -39,7 +39,7 @@
 			float y = abs(particleBuffer[instance_id].vel.y);
 			float z = (x + y);
 
-			o.color = float4(z * 1.5, z, z, 1.0);
+			o.color = float4(z * 1.2, z, z, 1.0);
 			o.position = mul(UNITY_MATRIX_MVP, float4(particleBuffer[instance_id].pos, 1.0f));
 
 			return o;

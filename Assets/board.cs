@@ -39,12 +39,12 @@ public class board : MonoBehaviour
     // public valiables
     public int particleNum   = 400000;
     public int latticeWidth  = 1600;
-    public int latticeHeight = 600;
+    public int latticeHeight = 900;
     public float cameraPosZ  = -800;
     public float Re          = 2000;
-    public float threshold   = 60;
-    public float obsW        = 2;
-    public float obsH        = 2;
+    public float threshold   = 100;
+    public float obsW        = 10;
+    public float obsH        = 10;
 
     // obs pos
     float obsX = 0;

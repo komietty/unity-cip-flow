@@ -4,6 +4,7 @@ public class camera : MonoBehaviour {
 
     int framerate = 60;
     int frameCount;
+    public bool recode = false;
 
 
     void Start()
@@ -14,7 +15,7 @@ public class camera : MonoBehaviour {
         float z = b.cameraPosZ;
         gameObject.transform.position = new Vector3(x, y, z);
 
-        StartRecording();
+        if (recode) StartRecording();
     }
 
     void StartRecording()
@@ -26,7 +27,7 @@ public class camera : MonoBehaviour {
 
     void Update()
     {
-        if (frameCount > 0)
+        if (frameCount > 0 && recode)
         {
             var name = "Capture/frame" + frameCount.ToString("0000") + ".png";
             Application.CaptureScreenshot(name);
