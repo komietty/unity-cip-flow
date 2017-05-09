@@ -4,4 +4,4 @@ if we could write letters down on imaginary water surface. [view demo video](htt
 
 ![img](out.png)
 
-![img](out2.png)
+![img](bonobo.png)
