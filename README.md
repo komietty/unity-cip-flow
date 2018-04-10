@@ -1,7 +1,7 @@
-# LiquidInk
+# UnityFulidSimulationCIP
 
-if we could write letters down on imaginary water surface. [view demo video](https://vimeo.com/216546726).
+Realtime fulid simulation using CIP method.
 
-![img](out.png)
+![img](result1.png)
 
-![img](bonobo.png)
+![img](result2.png)
