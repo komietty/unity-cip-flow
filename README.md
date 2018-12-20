@@ -1,6 +1,6 @@
-# UnityFulidSimulationCIP
+# UFlow
 
-Realtime fulid simulation using CIP method.
+Realtime fulid simulation with CIP method on Unity.
 
 ![img](result1.png)
 
