@@ -1,26 +1,10 @@
 ﻿#pragma kernel Update
+#include "./Common.hlsl"
 
-struct Particle {
-	float3 pos;
-	float3 vel;
-};
-
-struct Lattice {
-	int type;
-	float prs;
-	float psi;
-	float omg;
-	float2 vel;
-	float2 vxg;
-	float2 vyg;
-};
-
-int width;
-int height;
 RWStructuredBuffer<Particle> PB;
 RWStructuredBuffer<Lattice> LB;
 
-[numthreads(8, 1, 1)]
+THREAD1D
 void Update(uint3 id : SV_DispatchThreadID)
 {
 	int w = width - 1;

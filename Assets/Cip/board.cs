@@ -1,17 +1,13 @@
 ﻿using UnityEngine;
 using System.Runtime.InteropServices;
 
-public class board : MonoBehaviour
-{
-
-    struct Particle
-    {
+public class board : MonoBehaviour {
+    struct Particle {
         public Vector3 pos;
         public Vector3 vel;
     }
 
-    struct Lattice
-    {
+    struct Lattice {
         public int type;
         public float prs;
         public float psi;
@@ -21,11 +17,11 @@ public class board : MonoBehaviour
         public Vector2 vyg;
     }
 
-    public Shader shader;
-    public ComputeShader patricleCompShader;
-    public ComputeShader cipCompShader;
-    public ComputeShader prsCompShader;
-    public ComputeShader velCompShader;
+    Shader shader;
+    ComputeShader patricleCompShader;
+    ComputeShader cipCompShader;
+    ComputeShader prsCompShader;
+    ComputeShader velCompShader;
     ComputeBuffer particlebuffer;
     ComputeBuffer latticebuffer;
     Material mat;
@@ -37,16 +33,17 @@ public class board : MonoBehaviour
     int velUpdateKernel;
 
     // public valiables
-    public int particleNum   = 400000;
-    public int latticeWidth  = 1600;
+    public int particleNum = 400000;
+    public int latticeWidth = 1600;
     public int latticeHeight = 900;
-    public float cameraPosZ  = -800;
-    public float Re          = 2000;
-    public float threshold   = 100;
-    public float obsW        = 10;
-    public float obsH        = 10;
+    public float cameraPosZ = -800;
+    public float Re = 2000;
+    public float threshold = 100;
+    public Vector2 brushSize;
 
-    // obs pos
+    // obs
+    public float obsW => brushSize.x;
+    public float obsH => brushSize.y;
     float obsX = 0;
     float obsY = 0;
     float prebObsX = 0;
@@ -55,16 +52,17 @@ public class board : MonoBehaviour
     // array length
     int latticeLen;
 
-    void OnEnable()
-    {
+    void OnEnable() {
         latticeLen = latticeWidth * latticeHeight;
-        mat = new Material(shader);
-
+        mat = new Material(Shader.Find("Hidden/ink"));
+        patricleCompShader = (ComputeShader)Resources.Load("particle");
+        cipCompShader = (ComputeShader)Resources.Load("calc");
+        prsCompShader = (ComputeShader)Resources.Load("pressure");
+        velCompShader = (ComputeShader)Resources.Load("velocity");
         Particle[] pArr = new Particle[particleNum];
-        Lattice[] lArr  = new Lattice[latticeLen];
+        Lattice[] lArr = new Lattice[latticeLen];
 
-        for (int i = 0; i < particleNum; i++)
-        {
+        for (int i = 0; i < particleNum; i++) {
             pArr[i].pos.x = Random.value * latticeWidth;
             pArr[i].pos.y = Random.value * latticeHeight;
             pArr[i].pos.z = 0;
@@ -73,10 +71,8 @@ public class board : MonoBehaviour
             pArr[i].vel.z = 0;
         }
 
-        for (int y = 0; y < latticeHeight; y++)
-        {
-            for (int x = 0; x < latticeWidth; x++)
-            {
+        for (int y = 0; y < latticeHeight; y++) {
+            for (int x = 0; x < latticeWidth; x++) {
                 int k = x + y * latticeWidth;
                 int w = latticeWidth - 1;
                 int h = latticeHeight - 1;
@@ -88,15 +84,15 @@ public class board : MonoBehaviour
                 if (x == 0) lArr[k].type = 3; // inlet
                 if (x == w) lArr[k].type = 4; // outlet
 
-                if (x == obsX && y > obsY && y < obsY + obsH)                   lArr[k].type = 5; // obs_left
-                if (y == obsY && x > obsX && x < obsX + obsW)                   lArr[k].type = 6; // obs_bottom
-                if (x == obsX + obsW && y > obsY && y < obsY + obsH)            lArr[k].type = 7; // obs_right
-                if (y == obsY + obsH && x > obsX && x < obsX + obsW)            lArr[k].type = 8; // obs_top
+                if (x == obsX && y > obsY && y < obsY + obsH) lArr[k].type = 5; // obs_left
+                if (y == obsY && x > obsX && x < obsX + obsW) lArr[k].type = 6; // obs_bottom
+                if (x == obsX + obsW && y > obsY && y < obsY + obsH) lArr[k].type = 7; // obs_right
+                if (y == obsY + obsH && x > obsX && x < obsX + obsW) lArr[k].type = 8; // obs_top
                 if (x > obsX && y > obsY && x < obsX + obsW && y < obsY + obsH) lArr[k].type = 9; // obs_inn
 
-                if (x == obsX && y == obsY)               lArr[k].type = 10; // obs_bottomleft
-                if (x == obsX && y == obsY + obsH)        lArr[k].type = 11; // obs_topleft
-                if (x == obsX + obsW && y == obsY)        lArr[k].type = 12; // obs_bottomright
+                if (x == obsX && y == obsY) lArr[k].type = 10; // obs_bottomleft
+                if (x == obsX && y == obsY + obsH) lArr[k].type = 11; // obs_topleft
+                if (x == obsX + obsW && y == obsY) lArr[k].type = 12; // obs_bottomright
                 if (x == obsX + obsW && y == obsY + obsH) lArr[k].type = 13; // obs_topright
 
                 // initial condition
@@ -111,12 +107,12 @@ public class board : MonoBehaviour
 
         // init compute buffer
         particlebuffer = new ComputeBuffer(particleNum, Marshal.SizeOf(typeof(Particle)));
-        latticebuffer  = new ComputeBuffer(latticeLen, Marshal.SizeOf(typeof(Lattice)));
+        latticebuffer = new ComputeBuffer(latticeLen, Marshal.SizeOf(typeof(Lattice)));
         particlebuffer.SetData(pArr);
         latticebuffer.SetData(lArr);
 
         // init kernel id 
-        updateKernel    = patricleCompShader.FindKernel("Update");
+        updateKernel = patricleCompShader.FindKernel("Update");
         cipUpdateKernel = cipCompShader.FindKernel("Update");
         prsUpdateKernel = prsCompShader.FindKernel("Update");
         velUpdateKernel = velCompShader.FindKernel("Update");
@@ -124,13 +120,11 @@ public class board : MonoBehaviour
         mat.SetBuffer("particleBuffer", particlebuffer);
 
         BoxCollider box = gameObject.GetComponent<BoxCollider>();
-        box.center = new Vector3(latticeWidth/2, latticeHeight/2, 0);
-        box.size   = new Vector3(latticeWidth, latticeHeight, 1);
+        box.center = new Vector3(latticeWidth / 2, latticeHeight / 2, 0);
+        box.size = new Vector3(latticeWidth, latticeHeight, 1);
     }
 
-    void Update()
-    {
-        //Debug.Log(Time.deltaTime);
+    void Update() {
         // update cip data
         cipCompShader.SetFloat("deltaT", Time.deltaTime);
         cipCompShader.SetFloat("Re", Re);
@@ -152,8 +146,7 @@ public class board : MonoBehaviour
         prsCompShader.SetInt("width", latticeWidth);
         prsCompShader.SetInt("height", latticeHeight);
         prsCompShader.SetBuffer(prsUpdateKernel, "LB", latticebuffer);
-        for (int i = 0; i < 2; i++)
-        {
+        for (int i = 0; i < 2; i++) {
             prsCompShader.Dispatch(prsUpdateKernel, latticeWidth / 8, latticeHeight / 8, 1);
         }
 
@@ -175,24 +168,19 @@ public class board : MonoBehaviour
         //get particle pos data
         Particle[] pArrData = new Particle[particleNum];
         particlebuffer.GetData(pArrData);
-        //Debug.Log(pArrData[1].pos);
-
     }
 
-    void OnDestroy()
-    {
+    void OnDestroy() {
         particlebuffer.Release();
         latticebuffer.Release();
     }
 
-    void OnRenderObject()
-    {
+    void OnRenderObject() {
         mat.SetPass(0);
-        Graphics.DrawProcedural(MeshTopology.Points, 1, particleNum);
+        Graphics.DrawProceduralNow(MeshTopology.Points, 1, particleNum);
     }
 
-    void OnMouseDrag()
-    {
+    void OnMouseDrag() {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
@@ -200,10 +188,8 @@ public class board : MonoBehaviour
         prebObsX = obsX;
         prebObsY = obsY;
 
-        if (hit.point.x > 0 && hit.point.x < latticeWidth && hit.point.y > 0 && hit.point.y < latticeHeight)
-        {
-            if (hit.collider.gameObject == gameObject)
-            {
+        if (hit.point.x > 0 && hit.point.x < latticeWidth && hit.point.y > 0 && hit.point.y < latticeHeight) {
+            if (hit.collider.gameObject == gameObject) {
                 obsX = hit.point.x;
                 obsY = hit.point.y;
             }

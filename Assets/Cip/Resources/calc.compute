@@ -1,26 +1,5 @@
 ﻿#pragma kernel Update
-
-struct Lattice {
-	int type;
-	float prs;
-	float psi;
-	float omg;
-	float2 vel;
-	float2 vxg;
-	float2 vyg;
-};
-
-int width;
-int height;
-float threshold;
-float deltaT;
-float Re;
-float obsH;
-float obsW;
-float obsX;
-float obsY;
-float prebObsX;
-float prebObsY;
+#include "./Common.hlsl"
 
 RWStructuredBuffer<Lattice> LB;
 
@@ -172,20 +151,19 @@ void velyUpdate(int i, int j, float vx, float vy) {
 	}
 }
 
-
-[numthreads(8, 8, 1)]
+THREAD2D
 void Update(uint3 id : SV_DispatchThreadID)
 {
 	// lattice position
-	int k  = id.x + width * id.y;
-	int l  = (id.x - 1) + width * id.y;
-	int r  = (id.x + 1) + width * id.y;
-	int b  = id.x + width * (id.y - 1);
-	int a  = id.x + width * (id.y + 1);
-	int al = (id.x - 1) + width * (id.y + 1);
-	int ar = (id.x + 1) + width * (id.y + 1);
-	int bl = (id.x - 1) + width * (id.y - 1);
-	int br = (id.x + 1) + width * (id.y - 1);
+	int k  = id.x + width * id.y,
+	    l  = (id.x - 1) + width * id.y,
+	    r  = (id.x + 1) + width * id.y,
+	    b  = id.x + width * (id.y - 1),
+	    a  = id.x + width * (id.y + 1),
+	    al = (id.x - 1) + width * (id.y + 1),
+	    ar = (id.x + 1) + width * (id.y + 1),
+	    bl = (id.x - 1) + width * (id.y - 1),
+	    br = (id.x + 1) + width * (id.y - 1);
 
 	int w = width - 1;
 	int h = height - 1;
@@ -228,18 +206,18 @@ void Update(uint3 id : SV_DispatchThreadID)
 
 	// prs boundary condition
 	if (LB[k].type == 1) LB[k].prs = LB[i + width * 1].prs;       // bottom
-	if (LB[k].type == 2) LB[k].prs = LB[i + width * (h - 1)].prs; // top
-	if (LB[k].type == 3) LB[k].prs = LB[1 + width * j].prs;       // inlet
-	if (LB[k].type == 4) LB[k].prs = 0;                           // outlet
+	else if (LB[k].type == 2) LB[k].prs = LB[i + width * (h - 1)].prs; // top
+	else if (LB[k].type == 3) LB[k].prs = LB[1 + width * j].prs;       // inlet
+	else if (LB[k].type == 4) LB[k].prs = 0;                           // outlet
 
-	if (LB[k].type == 5) LB[k].prs = LB[l].prs; // obs_left
-	if (LB[k].type == 6) LB[k].prs = LB[b].prs; // obs_bottom
-	if (LB[k].type == 7) LB[k].prs = LB[r].prs; // obs_right
-	if (LB[k].type == 8) LB[k].prs = LB[a].prs; // obs_top
-	if (LB[k].type == 9) LB[k].prs = 0;         // obs_inn
+	else if (LB[k].type == 5) LB[k].prs = LB[l].prs; // obs_left
+	else if (LB[k].type == 6) LB[k].prs = LB[b].prs; // obs_bottom
+	else if (LB[k].type == 7) LB[k].prs = LB[r].prs; // obs_right
+	else if (LB[k].type == 8) LB[k].prs = LB[a].prs; // obs_top
+	else if (LB[k].type == 9) LB[k].prs = 0;         // obs_inn
 
-	if (LB[k].type == 10) LB[k].prs = LB[bl].prs; // obs_bottomleft
-	if (LB[k].type == 11) LB[k].prs = LB[al].prs; // obs_topleft
-	if (LB[k].type == 12) LB[k].prs = LB[br].prs; // obs_bottomright
-	if (LB[k].type == 13) LB[k].prs = LB[ar].prs; // obs_topright
+	else if (LB[k].type == 10) LB[k].prs = LB[bl].prs; // obs_bottomleft
+	else if (LB[k].type == 11) LB[k].prs = LB[al].prs; // obs_topleft
+	else if (LB[k].type == 12) LB[k].prs = LB[br].prs; // obs_bottomright
+	else if (LB[k].type == 13) LB[k].prs = LB[ar].prs; // obs_topright
 }

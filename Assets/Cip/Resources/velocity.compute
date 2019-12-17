@@ -1,0 +1,22 @@
+﻿#pragma kernel Update
+#include "./Common.hlsl"
+RWStructuredBuffer<Lattice> LB;
+
+THREAD2D
+void Update(uint3 id : SV_DispatchThreadID) {
+	// lattice position
+	int w = width - 1,
+	    h = height - 1,
+	    i = id.x,
+	    j = id.y,
+	    k = id.x + width * id.y,
+	    l = (id.x - 1) + width * id.y,
+	    r = (id.x + 1) + width * id.y,
+	    b = id.x + width * (id.y - 1),
+	    a = id.x + width * (id.y + 1);
+
+	if (0 < i < w && 0 < j < h && LB[k].type == 0) {
+		LB[k].vel.x += -0.5 * deltaT * (LB[r].prs - LB[l].prs);
+		LB[k].vel.y += -0.5 * deltaT * (LB[a].prs - LB[b].prs);
+	}
+}
